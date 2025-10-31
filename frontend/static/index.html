@@ -133,26 +133,70 @@
                 </div>
             </div>
 
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('nodes')">Nodes</button>
+                <button class="tab-btn" onclick="switchTab('logs')">📋 Logs</button>
+            </div>
+
             <!-- Nodes Table -->
-            <div class="nodes-table-container">
-                <table class="nodes-table">
-                    <thead>
-                        <tr>
-                            <th>Node ID</th>
-                            <th>SOCKS Port</th>
-                            <th>Control Port</th>
-                            <th>Exit IP</th>
-                            <th>Country</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="nodes-table-body">
-                        <tr>
-                            <td colspan="7" style="text-align:center;">Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="nodes-tab" class="tab-content active">
+                <div class="nodes-table-container">
+                    <table class="nodes-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>SOCKS Port</th>
+                                <th>Control Port</th>
+                                <th>Exit IP (Tor)</th>
+                                <th>Server IP (Internal)</th>
+                                <th>Country</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nodes-table-body">
+                            <tr>
+                                <td colspan="8" style="text-align:center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="tab-content" style="display:none;">
+                <div class="logs-controls">
+                    <select id="log-filter" onchange="filterLogs()" class="input-sm">
+                        <option value="">All Actions</option>
+                        <option value="login">Login</option>
+                        <option value="logout">Logout</option>
+                        <option value="node_rotate">Node Rotate</option>
+                        <option value="node_scale">Node Scale</option>
+                        <option value="config_change">Config Change</option>
+                        <option value="firewall_update">Firewall Update</option>
+                        <option value="password_change">Password Change</option>
+                    </select>
+                    <button onclick="refreshLogs()" class="btn btn-sm btn-secondary">↻ Refresh</button>
+                </div>
+                <div class="logs-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                            <tr>
+                                <td colspan="5" style="text-align:center;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Configuration Modal -->

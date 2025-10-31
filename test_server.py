@@ -82,7 +82,7 @@ async def test_stats():
 
 @app.get("/api/v1/nodes/")
 async def test_nodes():
-    """Test nodes list"""
+    """Test nodes list with enhanced status"""
     return {
         "total": 5,
         "nodes": [
@@ -91,25 +91,61 @@ async def test_nodes():
                 "socks_port": 30000,
                 "control_port": 40000,
                 "is_healthy": True,
+                "status": "healthy",
                 "exit_ip": "185.220.101.1",
-                "exit_country": "DE"
+                "country": "DE",
+                "exit_country": "DE",
+                "server_ip": "195.26.255.18",
+                "latency_ms": 120
             },
             {
                 "node_id": "tor-0001",
                 "socks_port": 30001,
                 "control_port": 40001,
                 "is_healthy": True,
+                "status": "healthy",
                 "exit_ip": "185.220.101.2",
-                "exit_country": "US"
+                "country": "US",
+                "exit_country": "US",
+                "server_ip": "195.26.255.18",
+                "latency_ms": 95
             },
             {
                 "node_id": "tor-0002",
                 "socks_port": 30002,
                 "control_port": 40002,
                 "is_healthy": False,
+                "status": "unhealthy",
                 "exit_ip": None,
-                "exit_country": None
+                "country": None,
+                "exit_country": None,
+                "server_ip": "195.26.255.18",
+                "latency_ms": None
             },
+            {
+                "node_id": "tor-0003",
+                "socks_port": 30003,
+                "control_port": 40003,
+                "is_healthy": True,
+                "status": "slow",
+                "exit_ip": "185.220.101.3",
+                "country": "GB",
+                "exit_country": "GB",
+                "server_ip": "195.26.255.18",
+                "latency_ms": 650
+            },
+            {
+                "node_id": "tor-0004",
+                "socks_port": 30004,
+                "control_port": 40004,
+                "is_healthy": True,
+                "status": "rotating",
+                "exit_ip": "185.220.101.4",
+                "country": "FR",
+                "exit_country": "FR",
+                "server_ip": "195.26.255.18",
+                "latency_ms": 110
+            }
         ]
     }
 

@@ -475,3 +475,206 @@ async function setExitCountries() {
         showMessage('Failed to set exit countries', 'error');
     }
 }
+
+// Tab switching
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+        tab.style.display = 'none';
+    });
+    
+    // Show selected tab
+    const targetTab = document.getElementById(`${tabName}-tab`);
+    if (targetTab) {
+        targetTab.classList.add('active');
+        targetTab.style.display = 'block';
+    }
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Load data for the tab
+    if (tabName === 'logs') {
+        loadLogs();
+    } else if (tabName === 'nodes') {
+        loadNodes();
+    }
+}
+
+// Enhanced node loading with status colors and simplified IDs
+async function loadNodesEnhanced() {
+    try {
+        const data = await apiRequest('/nodes');
+        const tbody = document.getElementById('nodes-table-body');
+        
+        if (!data.nodes || data.nodes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No nodes available</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = data.nodes.map((node, index) => {
+            const nodeNum = index + 1;
+            const status = getNodeStatus(node);
+            const statusClass = `status-${status.type}`;
+            const rowClass = `node-row-${status.type}`;
+            const countryFlag = getCountryFlag(node.country);
+            const serverIP = node.server_ip || window.location.hostname;
+            
+            return `
+                <tr class="${rowClass}">
+                    <td><strong>${nodeNum}</strong></td>
+                    <td>${node.socks_port}</td>
+                    <td>${node.control_port}</td>
+                    <td>${node.exit_ip || 'Pending...'}</td>
+                    <td><code>${serverIP}</code></td>
+                    <td>${countryFlag} ${node.country || 'Unknown'}</td>
+                    <td class="${statusClass}">${status.icon} ${status.label}</td>
+                    <td>
+                        <button onclick="rotateNode('${node.node_id}')" class="btn btn-sm btn-secondary">
+                            🔄 Rotate
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading nodes:', error);
+    }
+}
+
+// Determine node status with 5 states
+function getNodeStatus(node) {
+    if (!node.status) {
+        return { type: 'paused', label: 'Paused', icon: '⏸' };
+    }
+    
+    const status = node.status.toLowerCase();
+    
+    if (status.includes('rotating') || status.includes('changing')) {
+        return { type: 'rotating', label: 'Rotating', icon: '🔄' };
+    }
+    
+    if (!node.exit_ip || status.includes('down') || status.includes('error')) {
+        return { type: 'unhealthy', label: 'Unhealthy', icon: '❌' };
+    }
+    
+    if (node.latency_ms && node.latency_ms > 500) {
+        return { type: 'slow', label: 'Slow', icon: '⚠️' };
+    }
+    
+    if (status.includes('healthy') || status.includes('up') || node.exit_ip) {
+        return { type: 'healthy', label: 'Healthy', icon: '✅' };
+    }
+    
+    return { type: 'unhealthy', label: 'Unknown', icon: '❓' };
+}
+
+// Get country flag emoji
+function getCountryFlag(countryCode) {
+    if (!countryCode || countryCode.length !== 2) return '🌐';
+    
+    const flags = {
+        'US': '🇺🇸', 'DE': '🇩🇪', 'GB': '🇬🇧', 'FR': '🇫🇷',
+        'NL': '🇳🇱', 'CA': '🇨🇦', 'SE': '🇸🇪', 'CH': '🇨🇭',
+        'JP': '🇯🇵', 'SG': '🇸🇬', 'AU': '🇦🇺', 'IT': '🇮🇹',
+        'ES': '🇪🇸', 'PL': '🇵🇱', 'RU': '🇷🇺', 'BR': '🇧🇷'
+    };
+    
+    return flags[countryCode.toUpperCase()] || '🌐';
+}
+
+// Load audit logs
+let allLogs = [];
+
+async function loadLogs() {
+    try {
+        // Mock data for now - replace with actual API call
+        allLogs = generateMockLogs();
+        displayLogs(allLogs);
+    } catch (error) {
+        console.error('Error loading logs:', error);
+    }
+}
+
+function generateMockLogs() {
+    const actions = [
+        { action: 'login', details: 'Successful login', user: 'admin' },
+        { action: 'node_rotate', details: 'Rotated node #5', user: 'admin' },
+        { action: 'node_scale', details: 'Scaled pool to 50 nodes', user: 'admin' },
+        { action: 'config_change', details: 'Updated country list to US,DE', user: 'admin' },
+        { action: 'firewall_update', details: 'Applied firewall rules', user: 'system' },
+        { action: 'password_change', details: 'Changed password', user: 'admin' }
+    ];
+    
+    return actions.map((log, index) => ({
+        ...log,
+        timestamp: new Date(Date.now() - (index * 600000)).toISOString(),
+        ip: '192.168.1.' + (Math.floor(Math.random() * 255))
+    }));
+}
+
+function displayLogs(logs) {
+    const tbody = document.getElementById('logs-table-body');
+    
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No logs available</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = logs.map(log => `
+        <tr>
+            <td class="log-timestamp">${new Date(log.timestamp).toLocaleString()}</td>
+            <td class="log-user">${log.user}</td>
+            <td class="log-action">${log.action.replace(/_/g, ' ').toUpperCase()}</td>
+            <td class="log-details">${log.details}</td>
+            <td class="log-ip">${log.ip}</td>
+        </tr>
+    `).join('');
+}
+
+function filterLogs() {
+    const filter = document.getElementById('log-filter').value;
+    const filtered = filter ? allLogs.filter(log => log.action === filter) : allLogs;
+    displayLogs(filtered);
+}
+
+function refreshLogs() {
+    loadLogs();
+    showMessage('Logs refreshed', 'success');
+}
+
+// Override original loadNodes with enhanced version
+const originalLoadNodes = window.loadNodes;
+window.loadNodes = loadNodesEnhanced;
+
+// Auto-refresh nodes every 30 seconds
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    
+    autoRefreshInterval = setInterval(() => {
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab && activeTab.id === 'nodes-tab') {
+            loadNodesEnhanced();
+        }
+    }, 30000); // 30 seconds
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+// Start auto-refresh when dashboard loads
+const originalLoadDashboard = window.loadDashboard;
+if (originalLoadDashboard) {
+    window.loadDashboard = async function() {
+        await originalLoadDashboard();
+        startAutoRefresh();
+    };
+}
