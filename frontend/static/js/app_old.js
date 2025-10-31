@@ -2,21 +2,12 @@
 const API_BASE = '/api/v1';
 let authToken = localStorage.getItem('token');
 let currentUser = null;
-let optionsMenuOpen = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     if (authToken) {
         checkAuth();
     }
-    
-    // Close options menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (optionsMenuOpen && !e.target.closest('#options-btn') && !e.target.closest('#options-menu')) {
-            document.getElementById('options-menu').style.display = 'none';
-            optionsMenuOpen = false;
-        }
-    });
 });
 
 // Show message
@@ -74,7 +65,7 @@ async function login(event) {
             localStorage.setItem('token', authToken);
             
             if (data.require_password_change) {
-                showChangePasswordModal();
+                showPasswordChangeSection();
             } else {
                 await loadDashboard();
             }
@@ -85,31 +76,6 @@ async function login(event) {
     } catch (error) {
         document.getElementById('login-error').textContent = error.message || 'Login failed';
     }
-}
-
-// Options menu
-function showOptionsMenu() {
-    const menu = document.getElementById('options-menu');
-    optionsMenuOpen = !optionsMenuOpen;
-    menu.style.display = optionsMenuOpen ? 'block' : 'none';
-}
-
-// Modals
-function showChangePasswordModal() {
-    document.getElementById('password-modal').style.display = 'flex';
-    optionsMenuOpen = false;
-    document.getElementById('options-menu').style.display = 'none';
-}
-
-function showWhitelistModal() {
-    document.getElementById('whitelist-modal').style.display = 'flex';
-    loadWhitelist();
-    optionsMenuOpen = false;
-    document.getElementById('options-menu').style.display = 'none';
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
 }
 
 // Change password
@@ -129,70 +95,9 @@ async function changePassword(event) {
         });
         
         showMessage('Password changed successfully', 'success');
-        closeModal('password-modal');
-        document.getElementById('old-password').value = '';
-        document.getElementById('new-password').value = '';
+        await loadDashboard();
     } catch (error) {
         document.getElementById('password-error').textContent = 'Password change failed';
-    }
-}
-
-// IP Whitelist management
-async function loadWhitelist() {
-    try {
-        const data = await apiRequest('/config/whitelist');
-        const list = document.getElementById('whitelist-list');
-        list.innerHTML = '';
-        
-        if (data.whitelist && data.whitelist.length > 0) {
-            data.whitelist.forEach(ip => {
-                const item = document.createElement('div');
-                item.className = 'whitelist-item';
-                item.innerHTML = `
-                    <span>${ip}</span>
-                    <button onclick="removeWhitelistIP('${ip}')" class="btn btn-sm btn-danger">Remove</button>
-                `;
-                list.appendChild(item);
-            });
-        } else {
-            list.innerHTML = '<p style="color:#718096;font-size:13px;">No whitelist IPs configured. Add IPs to restrict access.</p>';
-        }
-    } catch (error) {
-        console.error('Failed to load whitelist:', error);
-    }
-}
-
-async function addWhitelistIP() {
-    const ip = document.getElementById('whitelist-ip').value.trim();
-    if (!ip) {
-        showMessage('Please enter an IP address', 'error');
-        return;
-    }
-    
-    try {
-        await apiRequest('/config/whitelist', {
-            method: 'POST',
-            body: JSON.stringify({ ip })
-        });
-        showMessage('IP added to whitelist', 'success');
-        document.getElementById('whitelist-ip').value = '';
-        await loadWhitelist();
-    } catch (error) {
-        showMessage('Failed to add IP to whitelist', 'error');
-    }
-}
-
-async function removeWhitelistIP(ip) {
-    if (!confirm(`Remove ${ip} from whitelist?`)) return;
-    
-    try {
-        await apiRequest(`/config/whitelist/${encodeURIComponent(ip)}`, {
-            method: 'DELETE'
-        });
-        showMessage('IP removed from whitelist', 'success');
-        await loadWhitelist();
-    } catch (error) {
-        showMessage('Failed to remove IP from whitelist', 'error');
     }
 }
 
@@ -201,7 +106,7 @@ async function checkAuth() {
     try {
         currentUser = await apiRequest('/auth/me');
         if (currentUser.require_password_change) {
-            showChangePasswordModal();
+            showPasswordChangeSection();
         } else {
             await loadDashboard();
         }
@@ -212,13 +117,21 @@ async function checkAuth() {
 
 // Show sections
 function showLoginSection() {
-    document.getElementById('login-section').style.display = 'flex';
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('password-change-section').style.display = 'none';
     document.getElementById('dashboard-section').style.display = 'none';
     document.getElementById('user-info').style.display = 'none';
 }
 
+function showPasswordChangeSection() {
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('password-change-section').style.display = 'block';
+    document.getElementById('dashboard-section').style.display = 'none';
+}
+
 async function loadDashboard() {
     document.getElementById('login-section').style.display = 'none';
+    document.getElementById('password-change-section').style.display = 'none';
     document.getElementById('dashboard-section').style.display = 'block';
     document.getElementById('user-info').style.display = 'flex';
     document.getElementById('username').textContent = currentUser?.username || 'Admin';
@@ -238,7 +151,7 @@ function logout() {
 async function refreshData() {
     await Promise.all([
         loadStats(),
-        loadNodesTable(),
+        loadNodes(),
         loadConfig(),
         loadTokens()
     ]);
@@ -256,41 +169,30 @@ async function loadStats() {
     }
 }
 
-// Load nodes as table
-async function loadNodesTable() {
+// Load nodes
+async function loadNodes() {
     try {
         const data = await apiRequest('/nodes/');
-        const tbody = document.getElementById('nodes-table-body');
-        tbody.innerHTML = '';
+        const list = document.getElementById('nodes-list');
+        list.innerHTML = '';
         
-        if (data.nodes && data.nodes.length > 0) {
-            data.nodes.forEach(node => {
-                const tr = document.createElement('tr');
-                tr.className = node.is_healthy ? 'healthy' : 'unhealthy';
-                tr.innerHTML = `
-                    <td><strong>${node.node_id}</strong></td>
-                    <td>${node.socks_port}</td>
-                    <td>${node.control_port}</td>
-                    <td>${node.exit_ip || 'N/A'}</td>
-                    <td>${node.exit_country || 'Unknown'}</td>
-                    <td>
-                        <span class="status-badge ${node.is_healthy ? 'status-healthy' : 'status-unhealthy'}">
-                            ${node.is_healthy ? '✓ Healthy' : '✗ Unhealthy'}
-                        </span>
-                    </td>
-                    <td>
-                        <button onclick="rotateNode('${node.node_id}')" class="btn btn-sm btn-secondary">🔄 Rotate</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#718096;">No nodes available</td></tr>';
-        }
+        data.nodes.forEach(node => {
+            const card = document.createElement('div');
+            card.className = `node-card ${node.is_healthy ? 'healthy' : 'unhealthy'}`;
+            card.innerHTML = `
+                <div class="node-info">
+                    <strong>${node.node_id}</strong><br>
+                    SOCKS: ${node.socks_port} | Control: ${node.control_port}<br>
+                    ${node.exit_ip ? `Exit: ${node.exit_ip} (${node.exit_country || 'Unknown'})` : 'No exit info'}
+                </div>
+                <div class="node-actions">
+                    <button onclick="rotateNode('${node.node_id}')" class="btn btn-secondary">🔄 Rotate</button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
     } catch (error) {
         console.error('Failed to load nodes:', error);
-        const tbody = document.getElementById('nodes-table-body');
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#f56565;">Failed to load nodes</td></tr>';
     }
 }
 
@@ -320,44 +222,21 @@ async function loadTokens() {
         const list = document.getElementById('tokens-list');
         list.innerHTML = '';
         
-        if (data.tokens && data.tokens.length > 0) {
-            data.tokens.forEach(token => {
-                const card = document.createElement('div');
-                card.className = 'token-card';
-                card.innerHTML = `
-                    <div><strong>ID:</strong> ${token.id}</div>
-                    <div><strong>Description:</strong> ${token.description || 'N/A'}</div>
-                    <div><strong>Expires:</strong> ${new Date(token.expires_at).toLocaleString()}</div>
-                    <div><strong>Status:</strong> ${token.is_revoked ? 'Revoked' : 'Active'}</div>
-                    <div><strong>Uses:</strong> ${token.use_count}</div>
-                    ${!token.is_revoked ? `<button onclick="revokeToken(${token.id})" class="btn btn-sm btn-danger">Revoke</button>` : ''}
-                `;
-                list.appendChild(card);
-            });
-        } else {
-            list.innerHTML = '<p style="color:#718096;font-size:13px;">No tokens created yet.</p>';
-        }
+        data.tokens.forEach(token => {
+            const card = document.createElement('div');
+            card.className = 'token-card';
+            card.innerHTML = `
+                <div><strong>ID:</strong> ${token.id}</div>
+                <div><strong>Description:</strong> ${token.description || 'N/A'}</div>
+                <div><strong>Expires:</strong> ${new Date(token.expires_at).toLocaleString()}</div>
+                <div><strong>Status:</strong> ${token.is_revoked ? 'Revoked' : 'Active'}</div>
+                <div><strong>Uses:</strong> ${token.use_count}</div>
+                ${!token.is_revoked ? `<button onclick="revokeToken(${token.id})" class="btn btn-danger">Revoke</button>` : ''}
+            `;
+            list.appendChild(card);
+        });
     } catch (error) {
         console.error('Failed to load tokens:', error);
-    }
-}
-
-// Bottom tabs
-function showBottomTab(tabName) {
-    // Hide all panels
-    document.getElementById('config-panel').style.display = 'none';
-    document.getElementById('export-panel').style.display = 'none';
-    
-    // Remove active class from all buttons
-    document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
-    
-    // Show selected panel
-    const panel = document.getElementById(`${tabName}-panel`);
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-    } else {
-        panel.style.display = 'block';
-        event.target.classList.add('active');
     }
 }
 
@@ -376,7 +255,7 @@ async function rotateNode(nodeId) {
     try {
         await apiRequest(`/nodes/${nodeId}/rotate`, { method: 'POST' });
         showMessage(`Circuit rotated for ${nodeId}`, 'success');
-        await loadNodesTable();
+        await loadNodes();
     } catch (error) {
         showMessage('Failed to rotate circuit', 'error');
     }
@@ -422,22 +301,42 @@ async function createToken() {
             body: JSON.stringify(body)
         }).then(r => r.json());
         
-        showMessage('Token created successfully', 'success');
+        const card = document.createElement('div');
+        card.className = 'token-card';
+        card.innerHTML = `
+            <div><strong>New Token Created!</strong></div>
+            <div class="token-value">${data.token}</div>
+            <div><strong>Expires:</strong> ${new Date(data.expires_at).toLocaleString()}</div>
+            <div><strong>Download URLs:</strong></div>
+            <div>TXT: /api/v1/export/download/txt?token=${data.token}</div>
+            <div>CSV: /api/v1/export/download/csv?token=${data.token}</div>
+            <div>JSON: /api/v1/export/download/json?token=${data.token}</div>
+        `;
+        document.getElementById('tokens-list').prepend(card);
         document.getElementById('token-description').value = '';
-        await loadTokens();
+        showMessage('Token created successfully', 'success');
     } catch (error) {
         showMessage('Failed to create token', 'error');
     }
 }
 
 async function revokeToken(tokenId) {
-    if (!confirm('Are you sure you want to revoke this token?')) return;
+    if (!confirm('Revoke this token?')) return;
     
     try {
-        await apiRequest(`/export/tokens/${tokenId}/revoke`, { method: 'POST' });
+        await apiRequest(`/export/tokens/${tokenId}`, { method: 'DELETE' });
         showMessage('Token revoked', 'success');
         await loadTokens();
     } catch (error) {
         showMessage('Failed to revoke token', 'error');
     }
+}
+
+// Tab switching
+function showTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(tabName + '-tab').classList.add('active');
 }

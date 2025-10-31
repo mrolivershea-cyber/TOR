@@ -1,11 +1,11 @@
 #!/bin/bash
-# Simple one-command start script for Tor Proxy Pool Admin Panel
+# Simple one-command start script for Connexa Proxy Admin Panel
 # Usage: ./START.sh
 
 set -e
 
 echo "=============================================="
-echo "Tor Proxy Pool - Quick Start"
+echo "Connexa Proxy - Quick Start"
 echo "=============================================="
 echo ""
 

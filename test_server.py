@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 import uvicorn
 
-app = FastAPI(title="Tor Proxy Pool - Test Mode")
+app = FastAPI(title="Connexa Proxy - Test Mode")
 
 # Serve static files
 static_path = Path(__file__).parent / "frontend" / "static"

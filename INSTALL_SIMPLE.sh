@@ -2,7 +2,7 @@
 set -e
 
 echo "=============================================="
-echo "Tor Proxy Pool - Simple Installation"
+echo "Connexa Proxy - Simple Installation"
 echo "=============================================="
 echo ""
 
@@ -16,27 +16,54 @@ NC='\033[0m' # No Color
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
+    OS_VERSION_ID=$VERSION_ID
 else
     echo -e "${RED}Cannot detect OS${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}Detected OS: $OS${NC}"
+echo -e "${GREEN}Detected OS: $OS $OS_VERSION_ID${NC}"
 echo ""
 
 # Install Python and pip
 echo "Step 1: Installing Python and pip..."
 case $OS in
-    ubuntu|debian)
-        sudo apt-get update
-        sudo apt-get install -y python3 python3-pip python3-venv
+    ubuntu|debian|linuxmint|pop)
+        sudo apt-get update -qq
+        sudo apt-get install -y python3 python3-pip python3-venv curl wget
         ;;
-    centos|rhel|fedora)
-        sudo yum install -y python3 python3-pip
+    centos|rhel)
+        if [ "${OS_VERSION_ID%%.*}" -ge 8 ]; then
+            sudo dnf install -y python3 python3-pip curl wget
+        else
+            sudo yum install -y python3 python3-pip curl wget
+        fi
+        ;;
+    fedora)
+        sudo dnf install -y python3 python3-pip curl wget
+        ;;
+    arch|manjaro)
+        sudo pacman -Sy --noconfirm python python-pip curl wget
+        ;;
+    opensuse*|sles)
+        sudo zypper install -y python3 python3-pip curl wget
+        ;;
+    alpine)
+        sudo apk add --no-cache python3 py3-pip curl wget
         ;;
     *)
-        echo -e "${RED}Unsupported OS: $OS${NC}"
-        exit 1
+        echo -e "${YELLOW}Warning: Unsupported OS: $OS${NC}"
+        echo "Attempting generic installation..."
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y python3 python3-pip
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y python3 python3-pip
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y python3 python3-pip
+        else
+            echo -e "${RED}Cannot install dependencies automatically${NC}"
+            exit 1
+        fi
         ;;
 esac
 
@@ -58,10 +85,10 @@ fi
 echo ""
 echo "Step 4: Creating systemd service..."
 
-SERVICE_FILE="/etc/systemd/system/tor-proxy-test.service"
+SERVICE_FILE="/etc/systemd/system/connexa-proxy.service"
 sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
-Description=Tor Proxy Pool Test Server
+Description=Connexa Proxy Admin Panel
 After=network.target
 
 [Service]
@@ -71,6 +98,8 @@ WorkingDirectory=$(pwd)
 ExecStart=/usr/bin/python3 $(pwd)/test_server.py
 Restart=on-failure
 RestartSec=5s
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -82,45 +111,68 @@ echo -e "${GREEN}Service file created: $SERVICE_FILE${NC}"
 echo ""
 echo "Step 5: Starting service..."
 sudo systemctl daemon-reload
-sudo systemctl enable tor-proxy-test
-sudo systemctl start tor-proxy-test
+sudo systemctl enable connexa-proxy
+sudo systemctl start connexa-proxy
 
 # Check status
 echo ""
 echo "Step 6: Checking service status..."
-sleep 2
-if sudo systemctl is-active --quiet tor-proxy-test; then
+sleep 3
+if sudo systemctl is-active --quiet connexa-proxy; then
     echo -e "${GREEN}✓ Service is running!${NC}"
 else
     echo -e "${RED}✗ Service failed to start${NC}"
     echo "Checking logs..."
-    sudo journalctl -u tor-proxy-test -n 20 --no-pager
+    sudo journalctl -u connexa-proxy -n 20 --no-pager
+    echo ""
+    echo "Trying to start manually for debugging..."
+    python3 test_server.py &
+    sleep 2
 fi
 
 # Get server IP
-SERVER_IP=$(hostname -I | awk '{print $1}')
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+fi
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="your-server-ip"
+fi
+
+# Open firewall port
+echo ""
+echo "Step 7: Opening firewall port 8000..."
+if command -v ufw &> /dev/null && sudo ufw status | grep -q "Status: active"; then
+    sudo ufw allow 8000/tcp
+    echo -e "${GREEN}✓ UFW rule added${NC}"
+elif command -v firewall-cmd &> /dev/null; then
+    sudo firewall-cmd --permanent --add-port=8000/tcp
+    sudo firewall-cmd --reload
+    echo -e "${GREEN}✓ Firewalld rule added${NC}"
+elif command -v iptables &> /dev/null; then
+    sudo iptables -I INPUT -p tcp --dport 8000 -j ACCEPT
+    echo -e "${GREEN}✓ Iptables rule added${NC}"
+fi
 
 echo ""
 echo "=============================================="
 echo -e "${GREEN}Installation Complete!${NC}"
 echo "=============================================="
 echo ""
-echo "Admin panel is available at:"
-echo -e "  ${GREEN}http://localhost:8000${NC}"
-echo -e "  ${GREEN}http://$SERVER_IP:8000${NC}"
+echo -e "${GREEN}Connexa Proxy Admin Panel is ready!${NC}"
+echo ""
+echo "Access the admin panel at:"
+echo -e "  ${GREEN}→ http://localhost:8000${NC}"
+echo -e "  ${GREEN}→ http://$SERVER_IP:8000${NC}"
 echo ""
 echo "Default credentials:"
-echo "  Username: admin"
-echo "  Password: admin"
+echo -e "  ${YELLOW}Username: admin${NC}"
+echo -e "  ${YELLOW}Password: admin${NC}"
 echo ""
-echo "Service commands:"
-echo "  Status:  sudo systemctl status tor-proxy-test"
-echo "  Stop:    sudo systemctl stop tor-proxy-test"
-echo "  Start:   sudo systemctl start tor-proxy-test"
-echo "  Restart: sudo systemctl restart tor-proxy-test"
-echo "  Logs:    sudo journalctl -u tor-proxy-test -f"
-echo ""
-echo "NOTE: This is a TEST server for verifying the admin panel."
-echo "      It does NOT provide actual Tor proxy functionality."
-echo "      See QUICKSTART.md for full installation."
+echo "Service management:"
+echo "  Status:  sudo systemctl status connexa-proxy"
+echo "  Stop:    sudo systemctl stop connexa-proxy"
+echo "  Start:   sudo systemctl start connexa-proxy"
+echo "  Restart: sudo systemctl restart connexa-proxy"
+echo "  Logs:    sudo journalctl -u connexa-proxy -f"
 echo ""
