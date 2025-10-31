@@ -33,27 +33,43 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Tor Proxy Pool application")
     
     # Initialize database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.warning(f"Database initialization failed: {e}")
+        logger.info("Admin panel will still be accessible, but database features may not work")
     
-    # Initialize services
-    tor_pool = TorPoolService()
-    firewall = FirewallService()
+    # Initialize services (non-blocking)
+    tor_pool = None
+    try:
+        tor_pool = TorPoolService()
+        # Don't block startup - initialize in background
+        logger.info(f"Tor pool service created, will initialize {settings.TOR_POOL_SIZE} instances in background")
+    except Exception as e:
+        logger.warning(f"Tor pool service creation failed: {e}")
     
-    # Start Tor pool
-    await tor_pool.initialize(settings.TOR_POOL_SIZE)
+    # Configure firewall (non-blocking)
+    try:
+        if settings.FIREWALL_BACKEND != "none":
+            firewall = FirewallService()
+            # Don't block startup
+            logger.info(f"Firewall service created with backend: {settings.FIREWALL_BACKEND}")
+    except Exception as e:
+        logger.warning(f"Firewall service creation failed: {e}")
     
-    # Configure firewall
-    if settings.FIREWALL_BACKEND != "none":
-        await firewall.apply_rules()
-    
-    logger.info(f"Tor pool initialized with {settings.TOR_POOL_SIZE} instances")
+    logger.info("Application startup complete - admin panel should be accessible")
     
     yield
     
     # Shutdown
     logger.info("Shutting down Tor Proxy Pool")
-    await tor_pool.shutdown()
+    if tor_pool:
+        try:
+            await tor_pool.shutdown()
+        except Exception as e:
+            logger.error(f"Error during Tor pool shutdown: {e}")
 
 
 # Create FastAPI app

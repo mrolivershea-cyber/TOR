@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Security
-    API_SECRET_KEY: str
+    API_SECRET_KEY: str = "INSECURE_DEFAULT_KEY_CHANGE_ME_IN_PRODUCTION"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -29,14 +29,14 @@ class Settings(BaseSettings):
     REQUIRE_PASSWORD_CHANGE: bool = True
     
     # 2FA
-    ENABLE_2FA: bool = True
+    ENABLE_2FA: bool = False  # Disabled by default for easier first access
     
     # Database
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "torproxy"
     POSTGRES_USER: str = "torproxy"
-    POSTGRES_PASSWORD: str
+    POSTGRES_PASSWORD: str = "changeme"  # Default password
     
     @property
     def DATABASE_URL(self) -> str:
