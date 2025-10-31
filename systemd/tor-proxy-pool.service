@@ -1,0 +1,38 @@
+[Unit]
+Description=Tor Proxy Pool Backend Service
+Documentation=https://github.com/mrolivershea-cyber/TOR
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/tor-proxy-pool/backend
+Environment="PATH=/opt/tor-proxy-pool/backend/venv/bin"
+EnvironmentFile=/opt/tor-proxy-pool/.env
+
+# Start command
+ExecStart=/opt/tor-proxy-pool/backend/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitInterval=60
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Security
+NoNewPrivileges=false
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tor-proxy-pool
+
+[Install]
+WantedBy=multi-user.target
