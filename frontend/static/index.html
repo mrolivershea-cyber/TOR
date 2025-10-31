@@ -86,30 +86,50 @@
 
         <!-- Main Dashboard -->
         <div id="dashboard-section" class="section" style="display:none;">
-            <!-- Dashboard Header with Actions -->
-            <div class="dashboard-header">
-                <div class="stats-compact">
-                    <div class="stat-mini">
-                        <span class="stat-label">Total</span>
-                        <span class="stat-num" id="total-nodes">-</span>
-                    </div>
-                    <div class="stat-mini">
-                        <span class="stat-label">Healthy</span>
-                        <span class="stat-num" id="healthy-nodes">-</span>
-                    </div>
-                    <div class="stat-mini">
-                        <span class="stat-label">Health</span>
-                        <span class="stat-num" id="health-percent">-</span>
-                    </div>
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-label">Total Nodes</div>
+                    <div class="stat-value" id="total-nodes">-</div>
                 </div>
-                <div class="actions-compact">
-                    <label class="scale-label">
-                        Scale to: 
-                        <input type="number" id="scale-size" min="1" max="100" value="50" class="scale-input">
-                        <button onclick="scalePool()" class="btn btn-sm btn-primary">Scale</button>
-                    </label>
-                    <button onclick="rotateAll()" class="btn btn-sm btn-primary">🔄 Rotate All</button>
+                <div class="stat-box">
+                    <div class="stat-label">Healthy Nodes</div>
+                    <div class="stat-value" id="healthy-nodes">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Health %</div>
+                    <div class="stat-value" id="health-percent">-</div>
+                </div>
+            </div>
+
+            <!-- Control Panel Above Table -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <label>Scale Pool:</label>
+                    <input type="number" id="scale-size" min="1" max="100" value="50" class="input-sm">
+                    <button onclick="scalePool()" class="btn btn-sm btn-primary">Apply</button>
+                </div>
+                <div class="control-group">
+                    <label>Exit Countries:</label>
+                    <select id="exit-countries" multiple class="select-countries">
+                        <option value="US">🇺🇸 United States</option>
+                        <option value="DE">🇩🇪 Germany</option>
+                        <option value="GB">🇬🇧 United Kingdom</option>
+                        <option value="FR">🇫🇷 France</option>
+                        <option value="NL">🇳🇱 Netherlands</option>
+                        <option value="CA">🇨🇦 Canada</option>
+                        <option value="SE">🇸🇪 Sweden</option>
+                        <option value="CH">🇨🇭 Switzerland</option>
+                        <option value="JP">🇯🇵 Japan</option>
+                        <option value="SG">🇸🇬 Singapore</option>
+                    </select>
+                    <button onclick="setExitCountries()" class="btn btn-sm btn-primary">Set Countries</button>
+                </div>
+                <div class="control-group">
+                    <button onclick="rotateAll()" class="btn btn-sm btn-success">🔄 Rotate All Circuits</button>
                     <button onclick="refreshData()" class="btn btn-sm btn-secondary">↻ Refresh</button>
+                    <button onclick="showConfigPanel()" class="btn btn-sm btn-info">⚙️ Configuration</button>
+                    <button onclick="showExportPanel()" class="btn btn-sm btn-warning">📤 Export Tokens</button>
                 </div>
             </div>
 
@@ -135,30 +155,35 @@
                 </table>
             </div>
 
-            <!-- Bottom tabs for other features -->
-            <div class="bottom-tabs">
-                <button class="bottom-tab-btn" onclick="showBottomTab('config')">⚙️ Configuration</button>
-                <button class="bottom-tab-btn" onclick="showBottomTab('export')">📤 Export Tokens</button>
-            </div>
-
-            <!-- Configuration Panel (collapsible) -->
-            <div id="config-panel" class="bottom-panel" style="display:none;">
-                <h3>Configuration</h3>
-                <div id="config-info"></div>
-                <div class="actions">
-                    <button onclick="applyFirewall()" class="btn btn-primary">Apply Firewall Rules</button>
+            <!-- Configuration Modal -->
+            <div id="config-modal" class="modal" style="display:none;">
+                <div class="modal-content modal-large">
+                    <span class="close" onclick="closeModal('config-modal')">&times;</span>
+                    <h2>⚙️ Configuration</h2>
+                    <div id="config-info" class="config-display"></div>
+                    <div class="modal-actions">
+                        <button onclick="applyFirewall()" class="btn btn-primary">Apply Firewall Rules</button>
+                        <button onclick="closeModal('config-modal')" class="btn btn-secondary">Close</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Export Tokens Panel (collapsible) -->
-            <div id="export-panel" class="bottom-panel" style="display:none;">
-                <h3>Export Tokens</h3>
-                <div class="form-group">
-                    <label>Description:</label>
-                    <input type="text" id="token-description" placeholder="My Application">
-                    <button onclick="createToken()" class="btn btn-primary">Create Token</button>
+            <!-- Export Tokens Modal -->
+            <div id="export-modal" class="modal" style="display:none;">
+                <div class="modal-content modal-large">
+                    <span class="close" onclick="closeModal('export-modal')">&times;</span>
+                    <h2>📤 Export Tokens</h2>
+                    <div class="form-group">
+                        <label>Token Description:</label>
+                        <input type="text" id="token-description" placeholder="My Application" class="input-full">
+                        <button onclick="createToken()" class="btn btn-primary">Create Token</button>
+                    </div>
+                    <h3>Active Tokens</h3>
+                    <div id="tokens-list" class="tokens-display"></div>
+                    <div class="modal-actions">
+                        <button onclick="closeModal('export-modal')" class="btn btn-secondary">Close</button>
+                    </div>
                 </div>
-                <div id="tokens-list"></div>
             </div>
         </div>
     </div>

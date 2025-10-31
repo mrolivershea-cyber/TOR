@@ -29,24 +29,25 @@ echo ""
 echo "Step 1: Installing Python and pip..."
 case $OS in
     ubuntu|debian|linuxmint|pop)
+        export DEBIAN_FRONTEND=noninteractive
         sudo apt-get update -qq
-        sudo apt-get install -y python3 python3-pip python3-venv curl wget
+        sudo apt-get install -y -qq python3 python3-pip python3-venv curl wget < /dev/null
         ;;
     centos|rhel)
         if [ "${OS_VERSION_ID%%.*}" -ge 8 ]; then
-            sudo dnf install -y python3 python3-pip curl wget
+            sudo dnf install -y -q python3 python3-pip curl wget
         else
-            sudo yum install -y python3 python3-pip curl wget
+            sudo yum install -y -q python3 python3-pip curl wget
         fi
         ;;
     fedora)
-        sudo dnf install -y python3 python3-pip curl wget
+        sudo dnf install -y -q python3 python3-pip curl wget
         ;;
     arch|manjaro)
-        sudo pacman -Sy --noconfirm python python-pip curl wget
+        sudo pacman -Sy --noconfirm --noprogressbar python python-pip curl wget
         ;;
     opensuse*|sles)
-        sudo zypper install -y python3 python3-pip curl wget
+        sudo zypper install -y --non-interactive python3 python3-pip curl wget
         ;;
     alpine)
         sudo apk add --no-cache python3 py3-pip curl wget
@@ -54,12 +55,13 @@ case $OS in
     *)
         echo -e "${YELLOW}Warning: Unsupported OS: $OS${NC}"
         echo "Attempting generic installation..."
+        export DEBIAN_FRONTEND=noninteractive
         if command -v apt-get &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y python3 python3-pip
+            sudo apt-get update -qq && sudo apt-get install -y -qq python3 python3-pip < /dev/null
         elif command -v yum &> /dev/null; then
-            sudo yum install -y python3 python3-pip
+            sudo yum install -y -q python3 python3-pip
         elif command -v dnf &> /dev/null; then
-            sudo dnf install -y python3 python3-pip
+            sudo dnf install -y -q python3 python3-pip
         else
             echo -e "${RED}Cannot install dependencies automatically${NC}"
             exit 1
@@ -70,7 +72,7 @@ esac
 # Install FastAPI and uvicorn for test server
 echo ""
 echo "Step 2: Installing FastAPI and uvicorn..."
-pip3 install fastapi uvicorn --user
+pip3 install -q fastapi uvicorn --user 2>/dev/null || sudo pip3 install -q fastapi uvicorn 2>/dev/null
 
 # Test installation
 echo ""

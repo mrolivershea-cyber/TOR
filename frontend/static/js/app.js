@@ -441,3 +441,37 @@ async function revokeToken(tokenId) {
         showMessage('Failed to revoke token', 'error');
     }
 }
+
+// Show Configuration Panel (Modal)
+function showConfigPanel() {
+    loadConfig();
+    document.getElementById('config-modal').style.display = 'flex';
+}
+
+// Show Export Panel (Modal)
+function showExportPanel() {
+    loadTokens();
+    document.getElementById('export-modal').style.display = 'flex';
+}
+
+// Set Exit Countries
+async function setExitCountries() {
+    const select = document.getElementById('exit-countries');
+    const countries = Array.from(select.selectedOptions).map(opt => opt.value);
+    
+    if (countries.length === 0) {
+        showMessage('Please select at least one country', 'error');
+        return;
+    }
+    
+    try {
+        await apiRequest('/config/tor/countries', {
+            method: 'POST',
+            body: JSON.stringify({ countries: countries.join(','), strict_nodes: true })
+        });
+        showMessage(`Exit countries set to: ${countries.join(', ')}`, 'success');
+        await refreshData();
+    } catch (error) {
+        showMessage('Failed to set exit countries', 'error');
+    }
+}

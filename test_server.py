@@ -185,9 +185,22 @@ async def test_revoke_token(token_id: int):
     """Test revoke token"""
     return {"message": "Token revoked", "success": True}
 
+@app.post("/api/v1/config/tor/countries")
+async def test_set_countries(request: Request):
+    """Test set exit countries endpoint"""
+    data = await request.json()
+    countries = data.get("countries", "US,DE")
+    print(f"Setting exit countries to: {countries}")
+    return {
+        "message": f"Exit countries set to: {countries}",
+        "countries": countries.split(','),
+        "strict_nodes": data.get("strict_nodes", True),
+        "success": True
+    }
+
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🔐 Tor Proxy Pool - TEST SERVER")
+    print("🔐 Connexa Proxy - TEST SERVER")
     print("="*60)
     print("\nThis is a test server to verify the admin panel works.")
     print("It does NOT provide actual Tor proxy functionality.")
