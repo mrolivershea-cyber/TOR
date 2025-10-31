@@ -2,10 +2,13 @@
 Main FastAPI application entry point
 """
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from prometheus_client import make_asgi_app
 
 from app.core.config import settings
@@ -90,6 +93,11 @@ app.include_router(api_router, prefix="/api/v1")
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
+# Serve static files for admin panel
+static_path = Path(__file__).parent.parent.parent / "frontend" / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
 
 @app.get("/health")
 async def health_check():
@@ -103,7 +111,10 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint - Serve admin panel HTML"""
+    index_path = Path(__file__).parent.parent.parent / "frontend" / "static" / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
     return {
         "message": "Tor Proxy Pool API",
         "version": "1.0.0",

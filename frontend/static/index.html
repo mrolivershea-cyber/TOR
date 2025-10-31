@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tor Proxy Pool - Admin Panel</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Tor Proxy Pool - Admin Panel</h1>
+            <div id="user-info" style="display:none;">
+                <span id="username"></span>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <!-- Login Form -->
+        <div id="login-section" class="section">
+            <h2>Login</h2>
+            <form id="login-form" onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="login-username" value="admin" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="login-password" value="admin" required>
+                </div>
+                <div class="form-group" id="totp-group" style="display:none;">
+                    <label>2FA Code:</label>
+                    <input type="text" id="totp-token" placeholder="123456">
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="login-error" class="error"></div>
+            </form>
+        </div>
+
+        <!-- Password Change (forced) -->
+        <div id="password-change-section" class="section" style="display:none;">
+            <h2>⚠️ Password Change Required</h2>
+            <form id="password-change-form" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label>Current Password:</label>
+                    <input type="password" id="old-password" required>
+                </div>
+                <div class="form-group">
+                    <label>New Password:</label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Change Password</button>
+                <div id="password-error" class="error"></div>
+            </form>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard-section" class="section" style="display:none;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+                <button class="tab-btn" onclick="showTab('nodes')">Nodes</button>
+                <button class="tab-btn" onclick="showTab('config')">Configuration</button>
+                <button class="tab-btn" onclick="showTab('export')">Export Tokens</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-content active">
+                <h2>System Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Nodes</h3>
+                        <div class="stat-value" id="total-nodes">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Healthy Nodes</h3>
+                        <div class="stat-value" id="healthy-nodes">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Health %</h3>
+                        <div class="stat-value" id="health-percent">-</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button onclick="rotateAll()" class="btn btn-primary">🔄 Rotate All Circuits</button>
+                    <button onclick="refreshData()" class="btn btn-secondary">↻ Refresh</button>
+                </div>
+            </div>
+
+            <!-- Nodes Tab -->
+            <div id="nodes-tab" class="tab-content">
+                <h2>Tor Nodes</h2>
+                <div class="actions">
+                    <label>Scale to: 
+                        <input type="number" id="scale-size" min="1" max="100" value="50">
+                        <button onclick="scalePool()" class="btn btn-primary">Scale</button>
+                    </label>
+                </div>
+                <div id="nodes-list" class="nodes-list"></div>
+            </div>
+
+            <!-- Configuration Tab -->
+            <div id="config-tab" class="tab-content">
+                <h2>Configuration</h2>
+                <div id="config-info"></div>
+                <div class="actions">
+                    <button onclick="applyFirewall()" class="btn btn-primary">Apply Firewall Rules</button>
+                </div>
+            </div>
+
+            <!-- Export Tab -->
+            <div id="export-tab" class="tab-content">
+                <h2>Export Tokens</h2>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <input type="text" id="token-description" placeholder="My Application">
+                    <button onclick="createToken()" class="btn btn-primary">Create Token</button>
+                </div>
+                <div id="tokens-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
