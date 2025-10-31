@@ -51,15 +51,13 @@ async function login(event) {
     const totpToken = document.getElementById('totp-token').value;
     
     try {
-        const formData = new URLSearchParams();
-        formData.append('username', username);
-        formData.append('password', password);
-        if (totpToken) formData.append('totp_token', totpToken);
+        const body = { username, password };
+        if (totpToken) body.totp_token = totpToken;
         
         const data = await fetch(API_BASE + '/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         }).then(r => r.json());
         
         if (data.access_token) {
@@ -87,17 +85,13 @@ async function changePassword(event) {
     const newPassword = document.getElementById('new-password').value;
     
     try {
-        const formData = new URLSearchParams();
-        formData.append('old_password', oldPassword);
-        formData.append('new_password', newPassword);
-        
         await fetch(API_BASE + '/auth/change-password', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: formData
+            body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
         });
         
         showMessage('Password changed successfully', 'success');
@@ -295,16 +289,16 @@ async function applyFirewall() {
 async function createToken() {
     const description = document.getElementById('token-description').value;
     try {
-        const formData = new URLSearchParams();
-        if (description) formData.append('description', description);
+        const body = {};
+        if (description) body.description = description;
         
         const data = await fetch(API_BASE + '/export/tokens', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: formData
+            body: JSON.stringify(body)
         }).then(r => r.json());
         
         const card = document.createElement('div');

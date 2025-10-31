@@ -2,8 +2,10 @@
 """
 Simple test server to verify admin panel works
 Run with: python3 test_server.py
+
+Requirements: pip3 install fastapi uvicorn
 """
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
@@ -33,8 +35,22 @@ async def health():
     return {"status": "ok", "mode": "test", "message": "Test server running"}
 
 @app.post("/api/v1/auth/login")
-async def test_login(username: str = Form(...), password: str = Form(...)):
+async def test_login(request: Request):
     """Test login endpoint"""
+    try:
+        # Try JSON first
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+    except:
+        # Try form data
+        try:
+            form = await request.form()
+            username = form.get("username")
+            password = form.get("password")
+        except:
+            return JSONResponse({"detail": "Invalid request format"}, status_code=400)
+    
     print(f"Login attempt: {username}")
     if username == "admin" and password == "admin":
         return {
@@ -146,8 +162,18 @@ async def test_tokens():
     }
 
 @app.post("/api/v1/export/tokens")
-async def test_create_token(description: str = Form(None)):
+async def test_create_token(request: Request):
     """Test create token"""
+    try:
+        data = await request.json()
+        description = data.get("description")
+    except:
+        try:
+            form = await request.form()
+            description = form.get("description")
+        except:
+            description = None
+    
     return {
         "token": "test_export_token_1234567890abcdef",
         "expires_at": "2025-12-31T23:59:59",
